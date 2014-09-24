@@ -124,7 +124,8 @@ public class ConcordionPresenter extends Recorder implements Serializable {
                 "html { padding: 20px; font-size: 10px;} " +
                 "ul { font-family: courier,monospace; font-size: 1.4em; border: solid 1px #C3D9FF; " +
                 "     background-color: #F5F9FD; padding: 10px; padding-left: 2em;} " +
-                "h1 { color: #000; font-family: arial,sans-serif; font-size: 3em;}";
+                "h1 { color: #000; font-family: arial,sans-serif; font-size: 3em;} " +
+                "a { background-color: #D79C9C} ";
 
         // Validate the locationPrefix
         String prefix = "";
@@ -144,7 +145,7 @@ public class ConcordionPresenter extends Recorder implements Serializable {
         sb.append("<html>\n");
         sb.append("<head><style>").append(cssStyle).append("</style></head>\n");
         sb.append("<body>\n");
-        sb.append("<h1>Concordion Reports</h1>\n");
+        sb.append("<h1>Concordion reports - failures and errors</h1>\n");
         sb.append("<ul>\n");
 
         FilePath[] reports = dir.list("**/*.html");
@@ -152,10 +153,14 @@ public class ConcordionPresenter extends Recorder implements Serializable {
             String reportPath = getShashedPath(report);
             reportPath = reportPath.substring(dirPathLength);
             String reportTitle = reportPath;
+
             if (reportPath.startsWith(prefix)) {
                 reportTitle = reportPath.substring(prefix.length());
             }
-            sb.append(String.format("<li><a href='%s'>%s</a></li>\n",reportPath,reportTitle));
+
+            if(doesReportContainConcordionTestFailures(report)) {
+                sb.append(String.format("<li><a href='%s'>%s</a></li>\n", reportPath, reportTitle));
+            }
         }
 
         sb.append("</ul>\n");
@@ -164,6 +169,32 @@ public class ConcordionPresenter extends Recorder implements Serializable {
         // Actually output index file
         FilePath index = new FilePath(dir, "index.html");
         index.write(sb.toString(), "UTF-8");
+        injectHappyMessageIfNoFailuresFound(index);
+    }
+
+    private void injectHappyMessageIfNoFailuresFound(FilePath index) throws IOException , InterruptedException  {
+        if(!index.readToString().contains("<li>")){
+            index.write("<h2>No errors or failures!</h2>\n\n"+
+                    "<pre style='background-color:F0F089;'>░░░░░░░░░░░░░░░░░░░░░░█████████" + "\n" +
+                    "░░███████░░░░░░░░░░███▒▒▒▒▒▒▒▒███" + "\n" +
+                    "░░█▒▒▒▒▒▒█░░░░░░░███▒▒▒▒▒▒▒▒▒▒▒▒▒███" + "\n" +
+                    "░░░█▒▒▒▒▒▒█░░░░██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒██" + "\n" +
+                    "░░░░█▒▒▒▒▒█░░░██▒▒▒▒▒██▒▒▒▒▒▒██▒▒▒▒▒███" + "\n" +
+                    "░░░░░█▒▒▒█░░░█▒▒▒▒▒▒████▒▒▒▒████▒▒▒▒▒▒██" + "\n" +
+                    "░░░█████████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒██" + "\n" +
+                    "░░░█▒▒▒▒▒▒▒▒▒▒▒▒█▒▒▒▒▒▒▒▒▒█▒▒▒▒▒▒▒▒▒▒▒██" + "\n" +
+                    "░██▒▒▒▒▒▒▒▒▒▒▒▒▒█▒▒▒██▒▒▒▒▒▒▒▒▒▒██▒▒▒▒██" + "\n" +
+                    "██▒▒▒███████████▒▒▒▒▒██▒▒▒▒▒▒▒▒██▒▒▒▒▒██" + "\n" +
+                    "█▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▒▒▒▒▒▒████████▒▒▒▒▒▒▒██" + "\n" +
+                    "██▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒██" + "\n" +
+                    "░█▒▒▒███████████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒██" + "\n" +
+                    "░██▒▒▒▒▒▒▒▒▒▒████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█" + "\n" +
+                    "░░████████████░░░█████████████████</pre>", "UTF-8");
+        }
+    }
+
+    private boolean doesReportContainConcordionTestFailures(FilePath report) throws IOException {
+       return report.readToString().contains(" class=\"failure\" ");
     }
 
     private String getShashedPath(FilePath dir) throws IOException, InterruptedException {
